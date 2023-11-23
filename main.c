@@ -157,10 +157,11 @@ TokenType getToken(void)
   TokenType currentToken;
   StateType state = START;
   int save;
-
+  char c;
   while (state != DONE)
   {
-    char c = getNextChar();
+    c = getNextChar();
+    printf("%c",c);
     save = 1;
     switch (state)
     {
@@ -310,6 +311,10 @@ TokenType getToken(void)
   }
 
   printToken(currentToken, tokenString);
+
+    if(c == EOF){
+      currentToken = ENDFILE;
+    }
 
   return currentToken;
 }
