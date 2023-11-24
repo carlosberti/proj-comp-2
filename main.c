@@ -32,6 +32,7 @@ char tokenString[MAXTOKENLEN + 1];
 static char lineBuf[BUFLEN];
 static int linepos = 0;
 static int bufsize = 0;
+static int EOF_flag = 0;
 
 static char getNextChar(void)
 {
@@ -45,7 +46,10 @@ static char getNextChar(void)
       return lineBuf[linepos++];
     }
     else
+    {
+      EOF_flag = 1;
       return EOF;
+    }
   }
 
   return lineBuf[linepos++];
@@ -53,7 +57,8 @@ static char getNextChar(void)
 
 static void ungetNextChar(void)
 {
-  linepos--;
+  if (!EOF_flag)
+    linepos--;
 }
 
 static TokenType reservedLookup(char *s)
@@ -161,7 +166,6 @@ TokenType getToken(void)
   while (state != DONE)
   {
     c = getNextChar();
-    printf("%c",c);
     save = 1;
     switch (state)
     {
@@ -311,10 +315,6 @@ TokenType getToken(void)
   }
 
   printToken(currentToken, tokenString);
-
-    if(c == EOF){
-      currentToken = ENDFILE;
-    }
 
   return currentToken;
 }
