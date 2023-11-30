@@ -1,7 +1,12 @@
 #include "globals.h"
 #include "scan.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define BUFLEN 256
+#define alfabeto 26
+
 
 typedef enum
 {
@@ -26,6 +31,88 @@ static struct
     {"return", RETURN},
     {"void", VOID},
     {"while", WHILE}};
+
+
+typedef struct no{
+
+    struct no* filhos[alfabeto];
+    int tipo;   // indica se é estado de aceitação
+
+}no;
+
+no* raiz_trie = NULL; // raiz global
+
+no* cria_no(){
+    int i = 0;
+    no* p = NULL;
+    p = (no*)malloc(sizeof(no));
+    if(!p){
+        printf("\n ERRO \n");
+    }else{
+        p->tipo = 0;
+        for(i = 0; i < alfabeto; i++){
+            p->filhos[i] = NULL;
+        }
+    }
+
+    return (p);
+}
+
+int encontra_indice(char c){
+    int chave =  (int)c - (int)'a';
+    return chave;
+}
+
+void insere(no* raiz, char str[]){
+    int nivel;
+    int indice;
+    int tam = strlen(str);
+
+    no* p = raiz;
+
+    for(nivel = 0; nivel < tam; nivel++){
+        indice = encontra_indice(str[nivel]);
+        if(p->filhos[indice] == NULL){
+            p->filhos[indice] = cria_no(); 
+        }
+        p = p->filhos[indice];
+    }
+    p->tipo = 1;
+}
+
+int busca(no* raiz, char str[]){
+
+    int nivel;
+    int tam = strlen(str);
+    int indice;
+    no* p = raiz;
+
+    for(nivel = 0; nivel < tam; nivel++){
+        indice = encontra_indice(str[nivel]);
+        if(p->filhos[indice] == NULL){
+            return 0;   // não achou
+        }else{
+            p = p->filhos[indice];
+        }
+
+    }
+
+    if(p->tipo == 1){
+        return 1;   // achou
+    }
+
+}
+
+void destroyTrie(no* raiz) {
+    int i;
+    if (!raiz) {
+        return;
+    }
+    for (i = 0; i < alfabeto; i++) {
+        destroyTrie(raiz->filhos[i]);
+    }
+    free(raiz);
+}
 
 char tokenString[MAXTOKENLEN + 1];
 
@@ -335,6 +422,14 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  raiz_trie = cria_no();
+  insere(raiz_trie, "else");
+  insere(raiz_trie, "if");
+  insere(raiz_trie, "void");
+  insere(raiz_trie, "while");
+  insere(raiz_trie, "int");
+  insere(raiz_trie, "return");
+  
   char *file_name = argv[1];
   source_file = fopen(file_name, "r");
 
@@ -346,6 +441,6 @@ int main(int argc, char *argv[])
 
   while (getToken() != ENDFILE)
     ;
-
+  destroyTrie(raiz_trie);
   return 0;
 }
