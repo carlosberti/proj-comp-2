@@ -150,10 +150,9 @@ static void ungetNextChar(void)
 
 static TokenType reservedLookup(char *s)
 {
-  int i;
-  for (i = 0; i < MAXRESERVED; i++)
-    if (!strcmp(s, reservedWords[i].str))
-      return reservedWords[i].tok;
+    if (busca(raiz_trie,s)){
+      return RESERVEDWORD;
+    }
   return ID;
 }
 
@@ -161,12 +160,14 @@ void printToken(TokenType token, const char *tokenString)
 {
   switch (token)
   {
-  case ELSE:
+  /*case ELSE:
   case IF:
   case INT:
   case RETURN:
   case VOID:
   case WHILE:
+  */
+ case RESERVEDWORD:
     printf("reserved word: %s\n", tokenString);
     break;
   case PLUS:

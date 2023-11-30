@@ -16,6 +16,7 @@ typedef enum
     RETURN,
     VOID,
     WHILE,
+    RESERVEDWORD,
 
     PLUS,
     MINUS,
