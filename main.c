@@ -37,7 +37,7 @@ typedef struct no{
 
     struct no* filhos[alfabeto];
     int tipo;   // indica se é estado de aceitação
-
+    TokenType token;
 }no;
 
 no* raiz_trie = NULL; // raiz global
@@ -63,7 +63,7 @@ int encontra_indice(char c){
     return chave;
 }
 
-void insere(no* raiz, char str[]){
+void insere(no* raiz, char str[], TokenType tok){
     int nivel;
     int indice;
     int tam = strlen(str);
@@ -78,9 +78,10 @@ void insere(no* raiz, char str[]){
         p = p->filhos[indice];
     }
     p->tipo = 1;
+    p->token = tok;
 }
 
-int busca(no* raiz, char str[]){
+TokenType busca(no* raiz, char str[]){
 
     int nivel;
     int tam = strlen(str);
@@ -90,7 +91,7 @@ int busca(no* raiz, char str[]){
     for(nivel = 0; nivel < tam; nivel++){
         indice = encontra_indice(str[nivel]);
         if(p->filhos[indice] == NULL){
-            return 0;   // não achou
+            return ERROR;   // não achou
         }else{
             p = p->filhos[indice];
         }
@@ -98,7 +99,7 @@ int busca(no* raiz, char str[]){
     }
 
     if(p->tipo == 1){
-        return 1;   // achou
+        return p->token;   // achou
     }
 
 }
@@ -150,8 +151,10 @@ static void ungetNextChar(void)
 
 static TokenType reservedLookup(char *s)
 {
-    if (busca(raiz_trie,s)){
-      return RESERVEDWORD;
+    TokenType token;
+    token = busca(raiz_trie,s);
+    if (token != ERROR){
+      return token;
     }
   return ID;
 }
@@ -160,14 +163,12 @@ void printToken(TokenType token, const char *tokenString)
 {
   switch (token)
   {
-  /*case ELSE:
+  case ELSE:
   case IF:
   case INT:
   case RETURN:
   case VOID:
   case WHILE:
-  */
- case RESERVEDWORD:
     printf("reserved word: %s\n", tokenString);
     break;
   case PLUS:
@@ -424,12 +425,12 @@ int main(int argc, char *argv[])
   }
 
   raiz_trie = cria_no();
-  insere(raiz_trie, "else");
-  insere(raiz_trie, "if");
-  insere(raiz_trie, "void");
-  insere(raiz_trie, "while");
-  insere(raiz_trie, "int");
-  insere(raiz_trie, "return");
+  insere(raiz_trie, "else", ELSE);
+  insere(raiz_trie, "if", IF);
+  insere(raiz_trie, "void", VOID);
+  insere(raiz_trie, "while", WHILE);
+  insere(raiz_trie, "int", INT);
+  insere(raiz_trie, "return", RETURN);
   
   char *file_name = argv[1];
   source_file = fopen(file_name, "r");
