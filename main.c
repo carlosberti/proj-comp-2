@@ -50,6 +50,7 @@ no* cria_no(){
         printf("\n ERRO \n");
     }else{
         p->tipo = 0;
+        p->token = ERROR;
         for(i = 0; i < alfabeto; i++){
             p->filhos[i] = NULL;
         }
@@ -91,7 +92,7 @@ TokenType busca(no* raiz, char str[]){
     for(nivel = 0; nivel < tam; nivel++){
         indice = encontra_indice(str[nivel]);
         if(p->filhos[indice] == NULL){
-            return ERROR;   // não achou
+            return ID;   // nao achou
         }else{
             p = p->filhos[indice];
         }
@@ -99,7 +100,9 @@ TokenType busca(no* raiz, char str[]){
     }
 
     if(p->tipo == 1){
-        return p->token;   // achou
+        return p->token; // achou
+    }else{
+      return ID; // nao achou
     }
 
 }
@@ -146,17 +149,21 @@ static char getNextChar(void)
 static void ungetNextChar(void)
 {
   if (!EOF_flag)
+  {
     linepos--;
+  }
+  else
+  {
+    lineno--;
+  }
 }
 
-static TokenType reservedLookup(char *s)
+void resetLexema()
 {
-    TokenType token;
-    token = busca(raiz_trie,s);
-    if (token != ERROR){
-      return token;
-    }
-  return ID;
+  int i;
+  for(i = 0 ; i < MAXTOKENLEN+1; i++){
+    tokenString[i] = '\0';
+  }
 }
 
 void printToken(TokenType token, const char *tokenString)
@@ -245,6 +252,15 @@ void printToken(TokenType token, const char *tokenString)
   }
 }
 
+static TokenType reservedLookup(char *s)
+{
+    TokenType token;
+    token = busca(raiz_trie,s);
+      return token;
+    
+}
+
+
 TokenType getToken(void)
 {
   int tokenStringIndex = 0;
@@ -252,6 +268,7 @@ TokenType getToken(void)
   StateType state = START;
   int save;
   char c;
+  resetLexema();  // deixa o lexema zerado
   while (state != DONE)
   {
     c = getNextChar();
@@ -261,11 +278,12 @@ TokenType getToken(void)
     case START:
       if (isdigit(c))
         state = INNUM;
-      else if (isalpha(c))
-        state = INID;
-      else if (c == '<' || c == '>' || c == '!' || c == '=' || c == '/')
+      else if (isalpha(c)){
+        state = INID; 
+      }
+      else if (c == '<' || c == '>' || c == '!' || c == '=' || c == '/'){
         state = IN2SS;
-      else if (c == ' ' || c == '\t' || c == '\n')
+      }else if (c == ' ' || c == '\t' || c == '\n')
         save = 0;
       else
       {
@@ -345,6 +363,7 @@ TokenType getToken(void)
         ungetNextChar();
         save = 0;
         state = DONE;
+        currentToken = ASSIGN;
         break;
       }
       state = DONE;

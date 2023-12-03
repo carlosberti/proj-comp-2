@@ -55,59 +55,131 @@ int yylex()
 }
 
 programa : declaracao-lista
+         ;
 
-declaracao-lista : declaracao-lista declaracao | declaracao
+declaracao-lista : declaracao-lista declaracao
+                 | declaracao
+                 ;
 
-declaracao : var-declaracao | fun-declaracao
+declaracao  : var-declaracao
+            | fun-declaracao
+            ;
 
-var-declaracao : tipo-especificador ID SEMI | tipo-especificador ID LBRACKET NUM RBRACKET SEMI
+var-declaracao  : tipo-especificador ID SEMI
+                | tipo-especificador ID LBRACKET NUM RBRACKET SEMI
+                ;
 
-tipo-especificador : INT | VOID
+tipo-especificador  : INT
+                    | VOID
+                    ;
 
 fun-declaracao : tipo-especificador ID LPAREN params RPAREN composto-decl
+               ;
 
-params : param-lista | VOID
+params  : param-lista
+        | VOID
+        ;
 
-param-lista : param-lista COMMA param | param
+param-lista : param-lista COMMA param
+            | param
+            ;
 
-param : tipo-especificador ID | tipo-especificador ID LBRACKET RBRACKET
+param : tipo-especificador ID
+      | tipo-especificador ID LBRACKET RBRACKET
+      ;
 
 composto-decl : LBRACE local-declaracoes statement-lista RBRACE
+              ;
 
-local-declaracoes : local-declaracoes var-declaracao | vazio
+local-declaracoes : local-declaracoes var-declaracao
+                  | vazio
+                  ;
+statement-lista : statement-lista statement
+                | vazio
+                ;
 
-statement-lista : statement-lista statement | vazio
+statement   : expressao-decl
+            | composto-decl
+            | selecao-decl
+            | iteracao-decl
+            | retorno-decl
+            ;
 
-statement : expressao-decl | composto-decl | selecao-decl | iteracao-decl | retorno-decl
+expressao-decl : expressao SEMI
+               | SEMI
+               ;
 
-expressao-decl : expressao SEMI | SEMI
-
-selecao-decl : IF LPAREN expressao RPAREN statement | IF LPAREN expressao RPAREN ELSE statement
+selecao-decl : IF LPAREN expressao RPAREN statement
+             | IF LPAREN expressao RPAREN ELSE statement
+             ;
 
 iteracao-decl : WHILE LPAREN expressao RPAREN statement
+              ;
 
-retorno-decl : RETURN SEMI | RETURN expressao SEMI
+retorno-decl : RETURN SEMI
+             | RETURN expressao SEMI
+             ;
 
-expressao : var = expressao | simples-expressao
+expressao : var = expressao
+          | simples-expressao
+          ;
 
-var : ID | ID LBRACKET expressao RBRACKET
+var : ID
+    | ID LBRACKET expressao RBRACKET
+    ;
 
-simples-expressao : soma-expressao relacional soma-expressao | soma-expressao
+simples-expressao : soma-expressao relacional soma-expressao
+                  | soma-expressao
+                  ;
 
-relacional : LTE | LT | GT | GTE | EQ | NEQ
+relacional : LTE
+           | LT
+           | GT
+           | GTE
+           | EQ
+           | NEQ
+           ;
 
-soma-expressao : soma-expressao soma termo | termo
+soma-expressao : soma-expressao soma termo
+               | termo
+               ;
 
-soma : PLUS | MINUS
+soma : PLUS
+     | MINUS
+     ;
 
-termo : termo mult fator | fator
+termo : termo mult fator
+      | fator
+      ;
 
-mult : TIMES | OVER
+mult : TIMES
+     | OVER
+     ;
 
-fator : LBRACKET expressao RBRACKET | var | ativacao | NUM
+fator : LBRACKET expressao RBRACKET
+      | var
+      | ativacao
+      | NUM
+      ;
 
 ativacao : ID LBRACKET args RBRACKET
+         ;
 
-args : arg-lista | vazio
+args : arg-lista
+     | vazio
+     ;
 
-arg-lista : arg-lista SEMI expressao | expressao 
+arg-lista : arg-lista SEMI expressao
+          | expressao
+          ;
+%%
+
+int yylex()
+{
+
+}
+
+void yyerror()
+{
+    printf("ERRO SINTÁTICO: %s LINHA: %i número da linha",tokenString,lineno);    // variveis do analisador lexico
+}
