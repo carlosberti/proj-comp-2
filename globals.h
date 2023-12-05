@@ -3,8 +3,13 @@
 #include <string.h>
 #include <ctype.h>
 
+#define BUFLEN 256
+#define alfabeto 26
+#define MAXTOKENLEN 40
 #define MAXRESERVED 6
 
+
+/*
 typedef enum
 {
     ENDFILE,
@@ -41,6 +46,6 @@ typedef enum
     ID,
     NUM
 } TokenType;
-
+*/
 extern FILE *source_file;
 extern int lineno;

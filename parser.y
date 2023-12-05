@@ -1,17 +1,73 @@
 %{
 #include "globals.h"
-#include "scan.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#define BUFLEN 256
+#define alfabeto 26
+#define MAXTOKENLEN 40
+
 int yylex(void);
 int yyparse(void);
-void yyerror(const char *);
+void yyerror(const char * str);
+
+
+typedef enum
+{
+  START,
+  INDEC,
+  INCOMMENT,
+  INCOMMENTOUT,
+  INNUM,
+  INID,
+  IN2SS,
+  DONE
+} StateType;
+
+typedef struct no{
+
+    struct no* filhos[alfabeto];
+    int tipo;   // indica se é estado de aceitação
+    int token;
+}no;
+
+no* raiz_trie = NULL; // raiz global
+
+no* cria_no();
+
+int encontra_indice(char c);
+
+void insere(no* raiz, char str[], int tok);
+
+int busca(no* raiz, char str[]);
+
+void destroyTrie(no* raiz) ;
+
+char tokenString[MAXTOKENLEN + 1];
+
+static char lineBuf[BUFLEN];
+static int linepos = 0;
+static int bufsize = 0;
+static int EOF_flag = 0;
+
+static char getNextChar(void);
+
+void resetLexema();
+
+void printToken(int token, const char *tokenString);
+
+static int reservedLookup(char *s);
+
+int getToken(void);
+
+FILE *source_file;
+int lineno = 0;
+
+  
 
 %}
 
-%token DIGIT
 %token ENDFILE
 %token ERROR
 %token ELSE
@@ -20,7 +76,6 @@ void yyerror(const char *);
 %token RETURN
 %token VOID
 %token WHILE
-%token RESERVEDWORD
 %token PLUS
 %token MINUS
 %token TIMES
@@ -44,92 +99,88 @@ void yyerror(const char *);
 %token ID
 %token NUM
 
+%left PLUS MINUS
+%left TIMES OVER
+
 %%
 
 
-%%
-
-int yylex()
-{
-    //analisador lexico
-}
-
-programa : declaracao-lista
+programa : declaracaoLista
          ;
 
-declaracao-lista : declaracao-lista declaracao
+declaracaoLista : declaracaoLista declaracao
                  | declaracao
                  ;
 
-declaracao  : var-declaracao
-            | fun-declaracao
+declaracao  : varDeclaracao
+            | funDeclaracao
             ;
 
-var-declaracao  : tipo-especificador ID SEMI
-                | tipo-especificador ID LBRACKET NUM RBRACKET SEMI
+varDeclaracao  : tipoEspecificador ID SEMI
+                | tipoEspecificador ID LBRACKET NUM RBRACKET SEMI
                 ;
 
-tipo-especificador  : INT
+tipoEspecificador  : INT
                     | VOID
                     ;
 
-fun-declaracao : tipo-especificador ID LPAREN params RPAREN composto-decl
+funDeclaracao : tipoEspecificador ID LPAREN params RPAREN compostoDecl
                ;
 
-params  : param-lista
+params  : paramLista
         | VOID
         ;
 
-param-lista : param-lista COMMA param
+paramLista : paramLista COMMA param
             | param
             ;
 
-param : tipo-especificador ID
-      | tipo-especificador ID LBRACKET RBRACKET
+param : tipoEspecificador ID
+      | tipoEspecificador ID LBRACKET RBRACKET
       ;
 
-composto-decl : LBRACE local-declaracoes statement-lista RBRACE
+compostoDecl : LBRACE localDeclaracoes statementLista RBRACE
               ;
 
-local-declaracoes : local-declaracoes var-declaracao
-                  | vazio
+localDeclaracoes : localDeclaracoes varDeclaracao
+                  |
                   ;
-statement-lista : statement-lista statement
-                | vazio
+statementLista : statementLista statement
+                |
                 ;
 
-statement   : expressao-decl
-            | composto-decl
-            | selecao-decl
-            | iteracao-decl
-            | retorno-decl
+statement   : expressaoDecl
+            | compostoDecl
+            | selecaoDecl
+            | iteracaoDecl
+            | retornoDecl
             ;
 
-expressao-decl : expressao SEMI
+expressaoDecl : expressao SEMI
                | SEMI
                ;
 
-selecao-decl : IF LPAREN expressao RPAREN statement
+selecaoDecl : IF LPAREN expressao RPAREN statement
              | IF LPAREN expressao RPAREN ELSE statement
              ;
 
-iteracao-decl : WHILE LPAREN expressao RPAREN statement
+iteracaoDecl : WHILE LPAREN expressao RPAREN statement
               ;
 
-retorno-decl : RETURN SEMI
+retornoDecl : RETURN SEMI
              | RETURN expressao SEMI
              ;
 
-expressao : var = expressao
-          | simples-expressao
+expressao : var ASSIGN expressao
+          | simplesExpressao
           ;
 
 var : ID
     | ID LBRACKET expressao RBRACKET
     ;
 
-simples-expressao : soma-expressao relacional soma-expressao
-                  | soma-expressao
+simplesExpressao : somaExpressao relacional somaExpressao
+                  | somaExpressao
                   ;
 
 relacional : LTE
@@ -140,7 +191,7 @@ relacional : LTE
            | NEQ
            ;
 
-soma-expressao : soma-expressao soma termo
+somaExpressao : somaExpressao soma termo
                | termo
                ;
 
@@ -159,27 +210,446 @@ mult : TIMES
 fator : LBRACKET expressao RBRACKET
       | var
       | ativacao
-      | NUM
+      | NUM {printf("a");}
       ;
 
 ativacao : ID LBRACKET args RBRACKET
          ;
 
-args : arg-lista
-     | vazio
+args : argLista
+     |
      ;
 
-arg-lista : arg-lista SEMI expressao
+argLista : argLista SEMI expressao
           | expressao
           ;
 %%
 
+no* cria_no(){
+    int i = 0;
+    no* p = NULL;
+    p = (no*)malloc(sizeof(no));
+    if(!p){
+        printf("\n ERRO \n");
+    }else{
+        p->tipo = 0;
+        p->token = ERROR;
+        for(i = 0; i < alfabeto; i++){
+            p->filhos[i] = NULL;
+        }
+    }
+
+    return (p);
+}
+
+
+int encontra_indice(char c){
+    int chave =  (int)c - (int)'a';
+    return chave;
+}
+
+void insere(no* raiz, char str[], int tok){
+    int nivel;
+    int indice;
+    int tam = strlen(str);
+
+    no* p = raiz;
+
+    for(nivel = 0; nivel < tam; nivel++){
+        indice = encontra_indice(str[nivel]);
+        if(p->filhos[indice] == NULL){
+            p->filhos[indice] = cria_no(); 
+        }
+        p = p->filhos[indice];
+    }
+    p->tipo = 1;
+    p->token = tok;
+}
+
+int busca(no* raiz, char str[]){
+
+    int nivel;
+    int tam = strlen(str);
+    int indice;
+    no* p = raiz;
+
+    for(nivel = 0; nivel < tam; nivel++){
+        indice = encontra_indice(str[nivel]);
+        if(p->filhos[indice] == NULL){
+            return ID;   // nao achou
+        }else{
+            p = p->filhos[indice];
+        }
+
+    }
+
+    if(p->tipo == 1){
+        return p->token; // achou
+    }else{
+      return ID; // nao achou
+    }
+
+}
+
+void destroyTrie(no* raiz) {
+    int i;
+    if (!raiz) {
+        return;
+    }
+    for (i = 0; i < alfabeto; i++) {
+        destroyTrie(raiz->filhos[i]);
+    }
+    free(raiz);
+}
+
+
+char tokenString[MAXTOKENLEN + 1];
+
+
+static char getNextChar(void)
+{
+  if (!(linepos < bufsize))
+  {
+    lineno++;
+    if (fgets(lineBuf, BUFLEN - 1, source_file))
+    {
+      bufsize = strlen(lineBuf);
+      linepos = 0;
+      return lineBuf[linepos++];
+    }
+    else
+    {
+      EOF_flag = 1;
+      return EOF;
+    }
+  }
+
+  return lineBuf[linepos++];
+}
+
+static void ungetNextChar(void)
+{
+  if (!EOF_flag)
+  {
+    linepos--;
+  }
+  else
+  {
+    lineno--;
+  }
+}
+
+void resetLexema()
+{
+  int i;
+  for(i = 0 ; i < MAXTOKENLEN+1; i++){
+    tokenString[i] = '\0';
+  }
+}
+
+void printToken(int token, const char *tokenString)
+{
+  switch (token)
+  {
+  case ELSE:
+  case IF:
+  case INT:
+  case RETURN:
+  case VOID:
+  case WHILE:
+    printf("reserved word: %s\n", tokenString);
+    break;
+  case PLUS:
+    printf("+\n");
+    break;
+  case MINUS:
+    printf("-\n");
+    break;
+  case TIMES:
+    printf("*\n");
+    break;
+  case OVER:
+    printf("/\n");
+    break;
+  case LT:
+    printf("<\n");
+    break;
+  case LTE:
+    printf("<=\n");
+    break;
+  case GT:
+    printf(">\n");
+    break;
+  case GTE:
+    printf(">=\n");
+    break;
+  case EQ:
+    printf("==\n");
+    break;
+  case NEQ:
+    printf("!=\n");
+    break;
+  case ASSIGN:
+    printf("=\n");
+    break;
+  case SEMI:
+    printf(";\n");
+    break;
+  case COMMA:
+    printf(",\n");
+    break;
+  case LPAREN:
+    printf("(\n");
+    break;
+  case RPAREN:
+    printf(")\n");
+    break;
+  case LBRACKET:
+    printf("[\n");
+    break;
+  case RBRACKET:
+    printf("]\n");
+    break;
+  case LBRACE:
+    printf("{\n");
+    break;
+  case RBRACE:
+    printf("}\n");
+    break;
+  case ENDFILE:
+    printf("EOF\n");
+    break;
+  case NUM:
+    printf("NUM, val= %s\n", tokenString);
+    break;
+  case ID:
+    printf("ID, name= %s\n", tokenString);
+    break;
+  case ERROR:
+    printf("ERROR: %s\n", tokenString);
+    break;
+  default:
+    printf("Unknown token: %d\n", token);
+  }
+}
+
+static int reservedLookup(char *s)
+{
+    int token;
+    token = busca(raiz_trie,s);
+      return token;
+    
+}
+
+
+int getToken(void)
+{
+  int tokenStringIndex = 0;
+  int currentToken;
+  StateType state = START;
+  int save;
+  char c;
+  resetLexema();  // deixa o lexema zerado
+  while (state != DONE)
+  {
+    c = getNextChar();
+    save = 1;
+    switch (state)
+    {
+    case START:
+      if (isdigit(c))
+        state = INNUM;
+      else if (isalpha(c)){
+        state = INID; 
+      }
+      else if (c == '<' || c == '>' || c == '!' || c == '=' || c == '/'){
+        state = IN2SS;
+      }else if (c == ' ' || c == '\t' || c == '\n')
+        save = 0;
+      else
+      {
+        state = DONE;
+        switch (c)
+        {
+        case EOF:
+          save = 0;
+          currentToken = ENDFILE;
+          break;
+        case '+':
+          currentToken = PLUS;
+          break;
+        case '-':
+          currentToken = MINUS;
+          break;
+        case '*':
+          currentToken = TIMES;
+          break;
+        case ';':
+          currentToken = SEMI;
+          break;
+        case ',':
+          currentToken = COMMA;
+          break;
+        case '(':
+          currentToken = LPAREN;
+          break;
+        case ')':
+          currentToken = RPAREN;
+          break;
+        case '[':
+          currentToken = LBRACKET;
+          break;
+        case ']':
+          currentToken = RBRACKET;
+          break;
+        case '{':
+          currentToken = LBRACE;
+          break;
+        case '}':
+          currentToken = RBRACE;
+          break;
+        default:
+          currentToken = ERROR;
+          break;
+        }
+      }
+      break;
+    case INNUM:
+      if (!isdigit(c))
+      {
+        ungetNextChar();
+        save = 0;
+        state = DONE;
+        currentToken = NUM;
+      }
+      break;
+    case INID:
+      if (!isalpha(c))
+      {
+        ungetNextChar();
+        save = 0;
+        state = DONE;
+        currentToken = ID;
+      }
+      break;
+    case IN2SS:
+      if (tokenString[0] == '/' && c == '*')
+      {
+        state = INCOMMENT;
+        save = 0;
+        break;
+      }
+      if (c != '=')
+      {
+        ungetNextChar();
+        save = 0;
+        state = DONE;
+        currentToken = ASSIGN;
+        break;
+      }
+      state = DONE;
+      switch (tokenString[0])
+      {
+      case '<':
+        currentToken = LTE;
+        break;
+      case '>':
+        currentToken = GTE;
+        break;
+      case '=':
+        currentToken = EQ;
+        break;
+      case '!':
+        currentToken = NEQ;
+        break;
+      default:
+        currentToken = ERROR;
+        break;
+      }
+    case INCOMMENT:
+      save = 0;
+      if (c == '*')
+      {
+        state = INCOMMENTOUT;
+      }
+      else if (c == EOF)
+        state = DONE;
+      break;
+    case INCOMMENTOUT:
+      save = 0;
+      if (c == '/')
+      {
+        tokenString[tokenStringIndex--] = '\0';
+        state = START;
+        break;
+      }
+      else if (c == EOF)
+        state = DONE;
+      state = INCOMMENT;
+      break;
+    case DONE:
+    default:
+      state = DONE;
+      currentToken = ERROR;
+      break;
+    }
+    if (save && (tokenStringIndex <= MAXTOKENLEN))
+      tokenString[tokenStringIndex++] = c;
+    if (state == DONE)
+    {
+      tokenString[tokenStringIndex] = '\0';
+      if (currentToken == ID)
+        currentToken = reservedLookup(tokenString);
+    }
+  }
+
+  printToken(currentToken, tokenString);
+  return currentToken;
+}
+
+int tok;
+
 int yylex()
 {
+  
+  raiz_trie = cria_no();
+  insere(raiz_trie, "else", ELSE);
+  insere(raiz_trie, "if", IF);
+  insere(raiz_trie, "void", VOID);
+  insere(raiz_trie, "while", WHILE);
+  insere(raiz_trie, "int", INT);
+  insere(raiz_trie, "return", RETURN);
+  
+  char *file_name = "test.c-";
+  source_file = fopen(file_name, "r");
 
+  if (source_file == NULL)
+  {
+    printf("File not found\n");
+    exit(1);
+  }
+
+  while ((tok = getToken()) != ENDFILE){ // arrumar quando chegar em casa
+    return tok;
+  }
+  destroyTrie(raiz_trie);
+  
 }
 
-void yyerror()
-{
-    printf("ERRO SINTÁTICO: %s LINHA: %i número da linha",tokenString,lineno);    // variveis do analisador lexico
+void yyerror(const char* str){
+    printf("ERRO SINTATICO: %i  %s LINHA: %i numero da linha",tok,tokenString, lineno);    // variveis do analisador lexico
 }
+
+int main(){
+    if(yyparse() == 0){
+        printf("\n arvore \n");
+    }else{
+        printf("\n erro \n");
+    }
+    return 0;
+}
+
+/*
+    como fazer a arvore -> struct de nos (mas como vai ter mais de um filho)  = derivação mais a direita, começando de baixo, ver os slides, da para fazer a tabela de simbolos junto do analisador sintatico
+    verificar se é preciso alterar o analisador lexico
+*/
