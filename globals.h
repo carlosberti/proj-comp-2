@@ -3,39 +3,21 @@
 #include <string.h>
 #include <ctype.h>
 
-typedef enum
-{
-    ENDFILE,
-    ERROR,
-    ELSE,
-    IF,
-    INT,
-    RETURN,
-    VOID,
-    WHILE,
-    RESERVEDWORD,
-    PLUS,
-    MINUS,
-    TIMES,
-    OVER,
-    LT,
-    LTE,
-    GT,
-    GTE,
-    EQ,
-    NEQ,
-    ASSIGN,
-    SEMI,
-    COMMA,
-    LPAREN,
-    RPAREN,
-    LBRACKET,
-    RBRACKET,
-    LBRACE,
-    RBRACE,
-    ID,
-    NUM
-} TokenType;
-
 extern FILE *source_file;
 extern int lineno;
+/*
+typedef enum {StmtK, ExpK} NodeKind;
+typedef enum {IfK,RepeatK,AssignK,ReadK,WriteK} StmtKind;
+typedef enum {OpK,ConstK,Idk} ExpKind;
+typedef enum {Void, Integer,Bool}ExpType;
+
+typedef struct treeNode{
+    struct treeNode* filho[3]; //supondo que o max e 3
+    struct treeNode* irmao;
+    int linha;
+    NodeKind nodekind;
+    union{StmtKind stmt; ExpKind exp} kind;
+    union{int token; int val; char* nome} attr;
+    ExpType type;
+}nodeArv;
+*/

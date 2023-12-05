@@ -12,19 +12,12 @@ int yylex(void);
 int yyparse(void);
 void yyerror(const char * str);
 
+//#define YYSTYPE nodeArv*
 
-typedef enum
-{
-  START,
-  INDEC,
-  INCOMMENT,
-  INCOMMENTOUT,
-  INNUM,
-  INID,
-  IN2SS,
-  DONE
-} StateType;
-
+/*static nodeArv* raiz;
+static int savedLineNo;
+static char* savedName;
+*/
 typedef struct no{
 
     struct no* filhos[alfabeto];
@@ -64,6 +57,8 @@ int getToken(void);
 int entrada(char c);
 
 int lineno = 0;
+
+//nodeArv* newStmtNode(StmtKind kind);
 
 static int T[17][10] = {  //tabela transição dos estados
   {1,2,0,15,15,3,7,4,9,11},
@@ -107,6 +102,8 @@ static int consome[17][10] = {  // tabela de avança
 
 static int aceita[16] = {0,0,0,0,0,1,1,0,1,0,1,0,0,0,0,1};
 
+
+
 %}
 
 %token ENDFILE
@@ -140,11 +137,10 @@ static int aceita[16] = {0,0,0,0,0,1,1,0,1,0,1,0,0,0,0,1};
 %token ID
 %token NUM
 
-
 %%
 
 
-programa : declaracaoLista
+programa : declaracaoLista 
          ;
 
 declaracaoLista : declaracaoLista declaracao
@@ -207,7 +203,7 @@ iteracaoDecl : WHILE LPAREN expressao RPAREN statement
               ;
 
 retornoDecl : RETURN SEMI
-             | RETURN expressao SEMI
+             | RETURN expressao SEMI {printf("%i",$2);}
              ;
 
 expressao : var ASSIGN expressao
@@ -222,7 +218,7 @@ simplesExpressao : somaExpressao relacional somaExpressao
                   | somaExpressao
                   ;
 
-relacional : LTE
+relacional : LTE 
            | LT
            | GT
            | GTE
@@ -263,7 +259,17 @@ argLista : argLista SEMI expressao
           | expressao
           ;
 %%
-
+/*
+node* createNode(char str[]){
+    node* p =(node*)malloc(sizeof(node));
+    strcpy(p->str,str);
+    int i;
+    for(i = 0; i < 5 ; i++){
+      p->filhos[i] = NULL;
+    }
+    return p;
+}
+*/
 no* cria_no(){
     int i = 0;
     no* p = NULL;
@@ -686,79 +692,16 @@ int yylex()
   insere(raiz_trie, "return", RETURN);
   first = 1;
   }
-  /*if (source_file == NULL)
-  {
-    printf("File not found\n");
-    exit(1);
-  }
-*/
-
 
   while ((tok = getToken()) != ENDFILE && tok != ERROR){ // arrumar quando chegar em casa
-    if(tok == ENDFILE){
-      return 258;
-    }else if(tok == ERROR){
-      return 259;
-    }else if(tok == ELSE){
-      return 260;
-    }else if(tok == IF){
-      return 261;
-    }else if(tok == INT){
-      return 262;
-    }else if(tok == RETURN){
-      return 263;
-    }else if(tok == VOID){
-      return 264;
-    }else if(tok == WHILE){
-      return 265;
-    }else if(tok == PLUS){
-      return 266;
-    }else if(tok == MINUS){
-      return 267;
-    }else if(tok == TIMES){
-      return 268;
-    }else if(tok == OVER){
-      return 269;
-    }else if(tok == LT){
-      return 270;
-    }else if(tok == LTE){
-      return 271;
-    }else if(tok == GT){
-      return 272;
-    }else if(tok == GTE){
-      return 273;
-    }else if(tok == EQ){
-      return 274;
-    }else if(tok == NEQ){
-      return 275;
-    }else if(tok == ASSIGN){
-      return 276;
-    }else if(tok == SEMI){
-      return 277;
-    }else if(tok == COMMA){
-      return 278;
-    }else if(tok == LPAREN){
-      return 279;
-    }else if(tok == RPAREN){
-      return 280;
-    }else if(tok == LBRACKET){
-      return 281;
-    }else if(tok == RBRACKET){
-      return 282;
-    }else if(tok == LBRACE){
-      return 283;
-    }else if(tok == RBRACE){
-      return 284;
-    }else if(tok == ID){
-      return 285;
-    }else if(tok == NUM){
-      return 286;
-    }
+    return tok;
   }
+
   if(tok == ENDFILE){
   destroyTrie(raiz_trie);
   return EOF;
   }
+  return tok;
 }
 
 void yyerror(const char* str){

@@ -17,6 +17,40 @@ typedef enum
     DONE
 } StateType;
 
+typedef enum
+{
+    ENDFILE,
+    ERROR,
+    ELSE,
+    IF,
+    INT,
+    RETURN,
+    VOID,
+    WHILE,
+    RESERVEDWORD,
+    PLUS,
+    MINUS,
+    TIMES,
+    OVER,
+    LT,
+    LTE,
+    GT,
+    GTE,
+    EQ,
+    NEQ,
+    ASSIGN,
+    SEMI,
+    COMMA,
+    LPAREN,
+    RPAREN,
+    LBRACKET,
+    RBRACKET,
+    LBRACE,
+    RBRACE,
+    ID,
+    NUM
+} TokenType;
+
 typedef struct no
 {
     struct no *filhos[alfabeto];
