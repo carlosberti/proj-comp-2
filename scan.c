@@ -3,36 +3,105 @@
 
 #define BUFLEN 256
 
-typedef enum
-{
-  START,
-  INDEC,
-  INCOMMENT,
-  INCOMMENTOUT,
-  INNUM,
-  INID,
-  IN2SS,
-  DONE
-} StateType;
-
-static struct
-{
-  char *str;
-  TokenType tok;
-} reservedWords[MAXRESERVED] = {
-    {"else", ELSE},
-    {"if", IF},
-    {"int", INT},
-    {"return", RETURN},
-    {"void", VOID},
-    {"while", WHILE}};
-
-char tokenString[MAXTOKENLEN + 1];
-
-static char lineBuf[BUFLEN];
 static int linepos = 0;
 static int bufsize = 0;
 static int EOF_flag = 0;
+static char lineBuf[BUFLEN];
+int lineno = 0;
+char tokenString[MAXTOKENLEN + 1];
+
+no *cria_no()
+{
+  int i = 0;
+  no *p = NULL;
+  p = (no *)malloc(sizeof(no));
+  if (!p)
+  {
+    printf("\n ERRO \n");
+  }
+  else
+  {
+    p->tipo = 0;
+    p->token = ERROR;
+    for (i = 0; i < alfabeto; i++)
+    {
+      p->filhos[i] = NULL;
+    }
+  }
+
+  return (p);
+}
+
+int encontra_indice(char c)
+{
+  int chave = (int)c - (int)'a';
+  return chave;
+}
+
+void insere(no *raiz, char str[], TokenType tok)
+{
+  int nivel;
+  int indice;
+  int tam = strlen(str);
+
+  no *p = raiz;
+
+  for (nivel = 0; nivel < tam; nivel++)
+  {
+    indice = encontra_indice(str[nivel]);
+    if (p->filhos[indice] == NULL)
+    {
+      p->filhos[indice] = cria_no();
+    }
+    p = p->filhos[indice];
+  }
+  p->tipo = 1;
+  p->token = tok;
+}
+
+TokenType busca(no *raiz, char str[])
+{
+  int nivel;
+  int tam = strlen(str);
+  int indice;
+  no *p = raiz;
+
+  for (nivel = 0; nivel < tam; nivel++)
+  {
+    indice = encontra_indice(str[nivel]);
+    if (p->filhos[indice] == NULL)
+    {
+      return ID; // nao achou
+    }
+    else
+    {
+      p = p->filhos[indice];
+    }
+  }
+
+  if (p->tipo == 1)
+  {
+    return p->token; // achou
+  }
+  else
+  {
+    return ID; // nao achou
+  }
+}
+
+void destroyTrie(no *raiz)
+{
+  int i;
+  if (!raiz)
+  {
+    return;
+  }
+  for (i = 0; i < alfabeto; i++)
+  {
+    destroyTrie(raiz->filhos[i]);
+  }
+  free(raiz);
+}
 
 static char getNextChar(void)
 {
@@ -58,16 +127,22 @@ static char getNextChar(void)
 static void ungetNextChar(void)
 {
   if (!EOF_flag)
+  {
     linepos--;
+  }
+  else
+  {
+    lineno--;
+  }
 }
 
-static TokenType reservedLookup(char *s)
+void resetLexema()
 {
   int i;
-  for (i = 0; i < MAXRESERVED; i++)
-    if (!strcmp(s, reservedWords[i].str))
-      return reservedWords[i].tok;
-  return ID;
+  for (i = 0; i < MAXTOKENLEN + 1; i++)
+  {
+    tokenString[i] = '\0';
+  }
 }
 
 void printToken(TokenType token, const char *tokenString)
@@ -149,10 +224,190 @@ void printToken(TokenType token, const char *tokenString)
     printf("ID, name= %s\n", tokenString);
     break;
   case ERROR:
-    printf("ERROR: %s\n", tokenString);
+    printf("ERRO LEXICO: %s LINHA %i\n", tokenString, lineno);
     break;
   default:
     printf("Unknown token: %d\n", token);
+  }
+}
+
+static TokenType reservedLookup(char *s)
+{
+  TokenType token;
+  token = busca(raiz_trie, s);
+  return token;
+}
+
+static int T[17][10] = { // tabela transição dos estados
+    {1, 2, 0, 15, 15, 3, 7, 4, 9, 11},
+    {1, 16, 15, 15, 15, 15, 15, 15, 15, 15},
+    {16, 2, 15, 15, 15, 15, 15, 15, 15, 15},
+    {15, 15, 15, 15, 15, 15, 5, 15, 15, 15},
+    {15, 15, 15, 15, 15, 15, 6, 15, 15, 15},
+    {
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+    },
+    {
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+    },
+    {15, 15, 15, 15, 15, 15, 8, 15, 15, 15},
+    {
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+    },
+    {
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        10,
+        -1,
+        -1,
+        -1,
+    },
+    {
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+    },
+    {15, 15, 15, 12, 15, 15, 15, 15, 15, 15},
+    {12, 12, 12, 13, 12, 12, 12, 12, 12, 12},
+    {12, 12, 12, 12, 12, 12, 12, 12, 12, 14},
+    {
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+    },
+    {
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+    }
+
+};
+
+static int consome[17][10] = {
+    // tabela de avança
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, 1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {0, 0, 0, 1, 0, 0, 0, 0, 0, 0},
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+    {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+};
+
+static int aceita[16] = {0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1};
+
+int entrada(char c)
+{
+  if (isdigit(c))
+  {
+    return 0;
+  }
+  else if (isalnum(c))
+  {
+    return 1;
+  }
+  else if (c == ' ' || c == '\t' || c == '\n')
+  {
+    return 2;
+  }
+  else if (c == '*')
+  {
+    return 3;
+  }
+  else if (c == '+' || c == '-' || c == ';' || c == ',' || c == '(' || c == ')' || c == '[' || c == ']' || c == '{' || c == '}')
+  {
+    return 4;
+  }
+  else if (c == '<')
+  {
+    return 5;
+  }
+  else if (c == '=')
+  {
+    return 6;
+  }
+  else if (c == '>')
+  {
+    return 7;
+  }
+  else if (c == '!')
+  {
+    return 8;
+  }
+  else if (c == '/')
+  {
+    return 9;
+  }
+  else if (c == EOF)
+  {
+    return 10;
+  }
+  else
+  {
+    printf("\n ERRO na funcao entrada \n");
+    return -1;
   }
 }
 
@@ -160,33 +415,110 @@ TokenType getToken(void)
 {
   int tokenStringIndex = 0;
   TokenType currentToken;
-  StateType state = START;
   int save;
   char c;
-  while (state != DONE)
+  int estado = 0;
+  int fim = 0;
+  int flag_unget = 0;
+  int estado_antigo = 0;
+  resetLexema(); // deixa o lexema zerado
+  while (aceita[estado] == 0 && fim == 0)
   {
+    flag_unget = 0;
     c = getNextChar();
     save = 1;
-    switch (state)
+    if (consome[estado][entrada(c)] != 1)
     {
-    case START:
-      if (isdigit(c))
-        state = INNUM;
-      else if (isalpha(c))
-        state = INID;
-      else if (c == '<' || c == '>' || c == '!' || c == '=' || c == '/')
-        state = IN2SS;
-      else if (c == ' ' || c == '\t' || c == '\n')
-        save = 0;
-      else
+      flag_unget = 1;
+    }
+
+    if (entrada(c) != -1 && entrada(c) != 10)
+    {
+      estado = T[estado][entrada(c)];
+      if (estado == -1)
       {
-        state = DONE;
+        currentToken = ERROR;
+        fim = 1;
+      }
+    }
+
+    if (entrada(c) == 2)
+    {
+      save = 0;
+    }
+
+    if (entrada(c) == 10)
+    {
+      currentToken = ENDFILE;
+      fim = 1;
+    }
+    if (flag_unget == 1)
+    {
+      ungetNextChar();
+    }
+
+    switch (estado)
+    {
+    case 0:
+      // start
+      break;
+    case 1:
+      currentToken = NUM;
+      break;
+    case 2:
+      currentToken = ID;
+      break;
+    case 3:
+      currentToken = LT;
+      break;
+    case 4:
+      currentToken = GT;
+    case 5:
+      currentToken = LTE;
+      break;
+    case 6:
+      currentToken = GTE;
+      break;
+    case 7:
+      currentToken = ASSIGN;
+      break;
+    case 8:
+      currentToken = EQ;
+      break;
+    case 9:
+      currentToken = ERROR;
+      break;
+    case 10:
+      currentToken = NEQ;
+      break;
+    case 11:
+      currentToken = OVER;
+      break;
+    case 12:
+      // /*
+      save = 0;
+      break;
+    case 13:
+      // /* coment
+      save = 0;
+      break;
+    case 14:
+      estado = 0; // sai do comentario e recomeca
+      save = 0;
+      resetLexema();
+      tokenStringIndex = 0;
+      break;
+    case 15:
+      if (currentToken == ID)
+      {
+        currentToken = reservedLookup(tokenString);
+      }
+      save = 0;
+      if (estado_antigo == 0)
+      {
+        save = 1;
         switch (c)
         {
-        case EOF:
-          save = 0;
-          currentToken = ENDFILE;
-          break;
         case '+':
           currentToken = PLUS;
           break;
@@ -221,96 +553,24 @@ TokenType getToken(void)
           currentToken = RBRACE;
           break;
         default:
-          currentToken = ERROR;
           break;
         }
       }
       break;
-    case INNUM:
-      if (!isdigit(c))
-      {
-        ungetNextChar();
-        save = 0;
-        state = DONE;
-        currentToken = NUM;
-      }
-      break;
-    case INID:
-      if (!isalpha(c))
-      {
-        ungetNextChar();
-        save = 0;
-        state = DONE;
-        currentToken = ID;
-      }
-      break;
-    case IN2SS:
-      if (tokenString[0] == '/' && c == '*')
-      {
-        state = INCOMMENT;
-        save = 0;
-        break;
-      }
-      if (c != '=')
-      {
-        ungetNextChar();
-        save = 0;
-        state = DONE;
-        break;
-      }
-      state = DONE;
-      switch (tokenString[0])
-      {
-      case '<':
-        currentToken = LTE;
-        break;
-      case '>':
-        currentToken = GTE;
-        break;
-      case '=':
-        currentToken = EQ;
-        break;
-      case '!':
-        currentToken = NEQ;
-        break;
-      default:
-        currentToken = ERROR;
-        break;
-      }
-    case INCOMMENT:
-      save = 0;
-      if (c == '*')
-      {
-        state = INCOMMENTOUT;
-      }
-      else if (c == EOF)
-        state = DONE;
-      break;
-    case INCOMMENTOUT:
-      save = 0;
-      if (c == '/')
-      {
-        tokenString[tokenStringIndex--] = '\0';
-        state = START;
-        break;
-      }
-      else if (c == EOF)
-        state = DONE;
-      state = INCOMMENT;
-      break;
-    case DONE:
-    default:
-      state = DONE;
+    case 16:
       currentToken = ERROR;
+      fim = 1;
+      break;
+    default:
+
       break;
     }
+    estado_antigo = estado;
+
     if (save && (tokenStringIndex <= MAXTOKENLEN))
-      tokenString[tokenStringIndex++] = c;
-    if (state == DONE)
     {
-      tokenString[tokenStringIndex] = '\0';
-      if (currentToken == ID)
-        currentToken = reservedLookup(tokenString);
+      tokenString[tokenStringIndex] = c;
+      tokenStringIndex++;
     }
   }
 
