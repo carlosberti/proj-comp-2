@@ -132,15 +132,56 @@ static int reservedLookup(char *s);
 
 int getToken(void);
 
-FILE *source_file;
+int entrada(char c);
+
 int lineno = 0;
 
-  
+static int T[17][10] = {  //tabela transição dos estados
+  {1,2,0,15,15,3,7,4,9,11},
+  {1,16,15,15,15,15,15,15,15,15},
+  {16,2,15,15,15,15,15,15,15,15},
+  {15,15,15,15,15,15,5,15,15,15},
+  {15,15,15,15,15,15,6,15,15,15},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,},
+  {15,15,15,15,15,15,8,15,15,15},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,},
+  {-1,-1,-1,-1,-1,-1,10,-1,-1,-1,},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,},
+  {15,15,15,12,15,15,15,15,15,15},
+  {12,12,12,13,12,12,12,12,12,12},
+  {12,12,12,12,12,12,12,12,12,14},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,}
+
+};
+
+static int consome[17][10] = {  // tabela de avança
+  {1,1,1,1,1,1,1,1,1,1},
+  {1,0,0,0,0,0,0,0,0,0},
+  {0,1,0,0,0,0,0,0,0,0},
+  {0,0,0,0,0,0,1,0,0,0},
+  {0,0,0,0,0,0,1,0,0,0},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  {0,0,0,0,0,0,1,0,0,0},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  {-1,-1,-1,-1,-1,-1,1,-1,-1,-1},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  {0,0,0,1,0,0,0,0,0,0},
+  {1,1,1,1,1,1,1,1,1,1},
+  {1,1,1,1,1,1,1,1,1,1},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+  {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1},
+};
+
+static int aceita[16] = {0,0,0,0,0,1,1,0,1,0,1,0,0,0,0,1};
 
 
 
 /* Line 189 of yacc.c  */
-#line 144 "parser.tab.c"
+#line 185 "parser.tab.c"
 
 /* Enabling traces.  */
 #ifndef YYDEBUG
@@ -213,7 +254,7 @@ typedef int YYSTYPE;
 
 
 /* Line 264 of yacc.c  */
-#line 217 "parser.tab.c"
+#line 258 "parser.tab.c"
 
 #ifdef short
 # undef short
@@ -519,15 +560,15 @@ static const yytype_int8 yyrhs[] =
 };
 
 /* YYRLINE[YYN] -- source line where rule number YYN was defined.  */
-static const yytype_uint8 yyrline[] =
+static const yytype_uint16 yyrline[] =
 {
-       0,   108,   108,   111,   112,   115,   116,   119,   120,   123,
-     124,   127,   130,   131,   134,   135,   138,   139,   142,   145,
-     146,   148,   149,   152,   153,   154,   155,   156,   159,   160,
-     163,   164,   167,   170,   171,   174,   175,   178,   179,   182,
-     183,   186,   187,   188,   189,   190,   191,   194,   195,   198,
-     199,   202,   203,   206,   207,   210,   211,   212,   213,   216,
-     219,   220,   223,   224
+       0,   147,   147,   150,   151,   154,   155,   158,   159,   162,
+     163,   166,   169,   170,   173,   174,   177,   178,   181,   184,
+     185,   187,   188,   191,   192,   193,   194,   195,   198,   199,
+     202,   203,   206,   209,   210,   213,   214,   217,   218,   221,
+     222,   225,   226,   227,   228,   229,   230,   233,   234,   237,
+     238,   241,   242,   245,   246,   249,   250,   251,   252,   255,
+     258,   259,   262,   263
 };
 #endif
 
@@ -1494,17 +1535,10 @@ yyreduce:
   YY_REDUCE_PRINT (yyn);
   switch (yyn)
     {
-        case 58:
+      
 
 /* Line 1455 of yacc.c  */
-#line 213 "parser.y"
-    {printf("a");;}
-    break;
-
-
-
-/* Line 1455 of yacc.c  */
-#line 1508 "parser.tab.c"
+#line 1542 "parser.tab.c"
       default: break;
     }
   YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyn], &yyval, &yyloc);
@@ -1716,7 +1750,7 @@ yyreturn:
 
 
 /* Line 1675 of yacc.c  */
-#line 226 "parser.y"
+#line 265 "parser.y"
 
 
 no* cria_no(){
@@ -1799,7 +1833,6 @@ void destroyTrie(no* raiz) {
 
 char tokenString[MAXTOKENLEN + 1];
 
-
 static char getNextChar(void)
 {
   if (!(linepos < bufsize))
@@ -1820,7 +1853,6 @@ static char getNextChar(void)
 
   return lineBuf[linepos++];
 }
-
 static void ungetNextChar(void)
 {
   if (!EOF_flag)
@@ -1920,7 +1952,7 @@ void printToken(int token, const char *tokenString)
     printf("ID, name= %s\n", tokenString);
     break;
   case ERROR:
-    printf("ERROR: %s\n", tokenString);
+    printf("ERRO LEXICO: %s LINHA %i\n", tokenString,lineno);
     break;
   default:
     printf("Unknown token: %d\n", token);
@@ -1936,39 +1968,137 @@ static int reservedLookup(char *s)
 }
 
 
+
+int entrada(char c){
+    if(isdigit(c)){
+      return 0;
+    }else if(isalnum(c)){
+      return 1;
+    }else if(c == ' ' || c == '\t' || c == '\n'){
+      return 2;
+    }else if(c == '*'){
+      return 3;
+    }else if(c == '+' ||c == '-' || c == ';' ||c == ',' ||c == '(' ||c == ')' ||c == '[' ||c == ']' ||c == '{' ||c == '}'){
+      return 4;
+    }else if(c == '<'){
+      return 5;
+    }else if(c == '='){
+      return 6;
+    }else if(c == '>'){
+      return 7;
+    }else if(c == '!'){
+      return 8;
+    }else if(c == '/'){
+      return 9;
+    }else if(c ==  EOF){
+      return 10;
+    }else{
+      printf("\n ERRO na funcao entrada \n");
+      return -1;
+    }
+}
+
+
 int getToken(void)
 {
   int tokenStringIndex = 0;
   int currentToken;
-  StateType state = START;
   int save;
   char c;
+  int estado = 0;
+  int fim = 0;
+  int flag_unget = 0;
+  int estado_antigo = 0;
   resetLexema();  // deixa o lexema zerado
-  while (state != DONE)
+  while (aceita[estado] == 0 && fim == 0)
   {
+    flag_unget = 0;
     c = getNextChar();
     save = 1;
-    switch (state)
-    {
-    case START:
-      if (isdigit(c))
-        state = INNUM;
-      else if (isalpha(c)){
-        state = INID; 
+    if(consome[estado][entrada(c)] != 1){
+      flag_unget = 1;
+    }
+
+    if(entrada(c) !=  -1 && entrada(c) != 10){
+    estado = T[estado][entrada(c)];
+    if(estado == -1){
+      currentToken = ERROR;
+      fim = 1;
       }
-      else if (c == '<' || c == '>' || c == '!' || c == '=' || c == '/'){
-        state = IN2SS;
-      }else if (c == ' ' || c == '\t' || c == '\n')
-        save = 0;
-      else
-      {
-        state = DONE;
-        switch (c)
+    }
+    
+    if(entrada(c) == 2){
+      save = 0;
+    }
+
+    if(entrada(c) == 10){
+      currentToken = ENDFILE;
+      fim = 1;
+    }
+    if(flag_unget == 1){
+      ungetNextChar();
+    }
+  
+    switch (estado)
+    {
+    case 0:
+    // start
+    break;
+    case 1:
+      currentToken = NUM;
+    break;
+    case 2:
+      currentToken = ID;
+    break;
+    case 3:
+      currentToken = LT;
+    break;
+    case 4:
+      currentToken = GT;
+    case 5:
+      currentToken = LTE;
+    break;
+    case 6:
+      currentToken = GTE;
+    break;
+    case 7:
+      currentToken = ASSIGN;
+    break;
+    case 8:
+      currentToken = EQ;
+    break;
+    case 9:
+      currentToken = ERROR;
+    break;
+    case 10:
+      currentToken = NEQ;
+    break;
+    case 11:
+      currentToken = OVER;
+    break;
+    case 12:
+    // /*
+    save = 0;
+    break;
+    case 13:
+    // /* coment
+    save = 0;
+    break;
+    case 14:
+      estado = 0; // sai do comentario e recomeca
+      save = 0;
+      resetLexema();
+      tokenStringIndex = 0;
+    break;
+    case 15:
+      if(currentToken == ID){
+        currentToken = reservedLookup(tokenString);
+      }
+      save = 0;
+      if(estado_antigo == 0){
+      save = 1;
+      switch (c)
         {
-        case EOF:
-          save = 0;
-          currentToken = ENDFILE;
-          break;
         case '+':
           currentToken = PLUS;
           break;
@@ -2003,109 +2133,39 @@ int getToken(void)
           currentToken = RBRACE;
           break;
         default:
-          currentToken = ERROR;
           break;
         }
-      }
-      break;
-    case INNUM:
-      if (!isdigit(c))
-      {
-        ungetNextChar();
-        save = 0;
-        state = DONE;
-        currentToken = NUM;
-      }
-      break;
-    case INID:
-      if (!isalpha(c))
-      {
-        ungetNextChar();
-        save = 0;
-        state = DONE;
-        currentToken = ID;
-      }
-      break;
-    case IN2SS:
-      if (tokenString[0] == '/' && c == '*')
-      {
-        state = INCOMMENT;
-        save = 0;
-        break;
-      }
-      if (c != '=')
-      {
-        ungetNextChar();
-        save = 0;
-        state = DONE;
-        currentToken = ASSIGN;
-        break;
-      }
-      state = DONE;
-      switch (tokenString[0])
-      {
-      case '<':
-        currentToken = LTE;
-        break;
-      case '>':
-        currentToken = GTE;
-        break;
-      case '=':
-        currentToken = EQ;
-        break;
-      case '!':
-        currentToken = NEQ;
-        break;
-      default:
-        currentToken = ERROR;
-        break;
-      }
-    case INCOMMENT:
-      save = 0;
-      if (c == '*')
-      {
-        state = INCOMMENTOUT;
-      }
-      else if (c == EOF)
-        state = DONE;
-      break;
-    case INCOMMENTOUT:
-      save = 0;
-      if (c == '/')
-      {
-        tokenString[tokenStringIndex--] = '\0';
-        state = START;
-        break;
-      }
-      else if (c == EOF)
-        state = DONE;
-      state = INCOMMENT;
-      break;
-    case DONE:
-    default:
-      state = DONE;
+      }  
+    break;
+    case 16:
       currentToken = ERROR;
-      break;
+      fim = 1;
+    break;
+    default:
+
+    break;  
     }
-    if (save && (tokenStringIndex <= MAXTOKENLEN))
-      tokenString[tokenStringIndex++] = c;
-    if (state == DONE)
-    {
-      tokenString[tokenStringIndex] = '\0';
-      if (currentToken == ID)
-        currentToken = reservedLookup(tokenString);
+    estado_antigo = estado;
+    
+    if (save && (tokenStringIndex <= MAXTOKENLEN)){
+      tokenString[tokenStringIndex] = c;
+      tokenStringIndex++;
     }
   }
-
   printToken(currentToken, tokenString);
+
   return currentToken;
 }
 
 int tok;
+char *file_name = "test.c-";
+FILE *source_file;
+int first = 0;
 
 int yylex()
 {
-  
+  if(first == 0){
+  source_file = fopen(file_name, "r");
   raiz_trie = cria_no();
   insere(raiz_trie, "else", ELSE);
   insere(raiz_trie, "if", IF);
@@ -2113,21 +2173,81 @@ int yylex()
   insere(raiz_trie, "while", WHILE);
   insere(raiz_trie, "int", INT);
   insere(raiz_trie, "return", RETURN);
-  
-  char *file_name = "test.c-";
-  source_file = fopen(file_name, "r");
-
-  if (source_file == NULL)
+  first = 1;
+  }
+  /*if (source_file == NULL)
   {
     printf("File not found\n");
     exit(1);
   }
+*/
 
-  while ((tok = getToken()) != ENDFILE){ // arrumar quando chegar em casa
-    return tok;
+
+  while ((tok = getToken()) != ENDFILE && tok != ERROR){ // arrumar quando chegar em casa
+    if(tok == ENDFILE){
+      return 258;
+    }else if(tok == ERROR){
+      return 259;
+    }else if(tok == ELSE){
+      return 260;
+    }else if(tok == IF){
+      return 261;
+    }else if(tok == INT){
+      return 262;
+    }else if(tok == RETURN){
+      return 263;
+    }else if(tok == VOID){
+      return 264;
+    }else if(tok == WHILE){
+      return 265;
+    }else if(tok == PLUS){
+      return 266;
+    }else if(tok == MINUS){
+      return 267;
+    }else if(tok == TIMES){
+      return 268;
+    }else if(tok == OVER){
+      return 269;
+    }else if(tok == LT){
+      return 270;
+    }else if(tok == LTE){
+      return 271;
+    }else if(tok == GT){
+      return 272;
+    }else if(tok == GTE){
+      return 273;
+    }else if(tok == EQ){
+      return 274;
+    }else if(tok == NEQ){
+      return 275;
+    }else if(tok == ASSIGN){
+      return 276;
+    }else if(tok == SEMI){
+      return 277;
+    }else if(tok == COMMA){
+      return 278;
+    }else if(tok == LPAREN){
+      return 279;
+    }else if(tok == RPAREN){
+      return 280;
+    }else if(tok == LBRACKET){
+      return 281;
+    }else if(tok == RBRACKET){
+      return 282;
+    }else if(tok == LBRACE){
+      return 283;
+    }else if(tok == RBRACE){
+      return 284;
+    }else if(tok == ID){
+      return 285;
+    }else if(tok == NUM){
+      return 286;
+    }
   }
+  if(tok == ENDFILE){
   destroyTrie(raiz_trie);
-  
+  return EOF;
+  }
 }
 
 void yyerror(const char* str){
